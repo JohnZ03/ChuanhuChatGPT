@@ -628,7 +628,7 @@ class BaseLLMModel:
         self.history_file_path = new_auto_history_filename(self.user_identifier)
         history_name = self.history_file_path[:-5]
         choices = [history_name] + get_history_names(self.user_identifier)
-        return [], self.token_message([0]), gr.Radio.update(choices=choices, value=history_name)
+        return [], self.token_message([0]), gr.Radio.update(choices=choices, value=history_name), ""
 
     def delete_first_conversation(self):
         if self.history:
@@ -651,6 +651,7 @@ class BaseLLMModel:
             msg = "删除了一组对话的token计数记录"
             self.all_token_counts.pop()
         msg = "删除了一组对话"
+        self.auto_save(chatbot)
         return chatbot, msg
 
     def token_message(self, token_lst=None):
@@ -663,7 +664,7 @@ class BaseLLMModel:
 
     def rename_chat_history(self, filename, chatbot, user_name):
         if filename == "":
-            return gr.update(), gr.update()
+            return gr.update()
         if not filename.endswith(".json"):
             filename += ".json"
         self.delete_chat_history(self.history_file_path, user_name)
@@ -710,7 +711,7 @@ class BaseLLMModel:
             else:
                 self.history_file_path = new_history_file_path
         try:
-            if "/" not in self.history_file_path:
+            if self.history_file_path == os.path.basename(self.history_file_path):
                 history_file_path = os.path.join(
                     HISTORY_DIR, self.user_identifier, self.history_file_path)
             else:
@@ -738,7 +739,7 @@ class BaseLLMModel:
         except:
             # 没有对话历史或者对话历史解析失败
             logging.info(f"没有找到对话历史记录 {self.history_file_path}")
-            return self.history_file_path, self.system_prompt, []
+            return self.history_file_path, "", []
 
     def delete_chat_history(self, filename, user_name):
         if filename == "CANCELED":
@@ -747,7 +748,7 @@ class BaseLLMModel:
             return i18n("你没有选择任何对话历史"), gr.update(), gr.update()
         if not filename.endswith(".json"):
             filename += ".json"
-        if "/" not in filename:
+        if filename == os.path.basename(filename):
             history_file_path = os.path.join(HISTORY_DIR, user_name, filename)
         else:
             history_file_path = filename
